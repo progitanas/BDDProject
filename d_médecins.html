@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Médecin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body { background-color: #eef3f7; }
+        .urgent { color: red; font-weight: bold; }
+        .assigned { color: blue; font-weight: bold; }
+        .resolved { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Bienvenue Docteur, <span id="medecinName">Médecin</span></h2>
+    <hr />
+
+    <section>
+        <h4>Urgences non assignées</h4>
+        <table class="table table-hover" id="urgencesNonAssignes">
+            <thead>
+            <tr>
+                <th>ID Urgence</th>
+                <th>Patient</th>
+                <th>Date</th>
+                <th>Commentaire</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <p id="aucuneUrgenceNA" style="display:none;">Aucune urgence non assignée.</p>
+    </section>
+
+    <section class="mt-5">
+        <h4>Mes urgences prises en charge</h4>
+        <table class="table table-striped" id="urgencesAssignes">
+            <thead>
+            <tr>
+                <th>ID Urgence</th>
+                <th>Patient</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Commentaire</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <p id="aucuneUrgenceA" style="display:none;">Vous n'avez pas encore pris en charge d'urgences.</p>
+    </section>
+</div>
+
+<script>
+    const medecinId = 1; // à remplacer par session réelle
+
+    async function loadMedecinInfo() {
+        const res = await fetch(`/api/medecin/${medecinId}`);
+        if (!res.ok) {
+            alert('Erreur chargement infos médecin');
+            return;
+        }
+        const data = await res.json();
+        document.getElementById('medecinName').textContent = data.nom + ' ' + data.prenom;
+    }
+
+    async function loadUrgencesNonAssignes() {
+        const res = await fetch('/api/urgences/non-assignees');
+        const urgences = await res.json();
+
+        const tbody = document.querySelector('#urgencesNonAssignes tbody');
+        tbody.innerHTML = '';
+        const noneMsg = document.getElementById('aucuneUrgenceNA');
+
+        if (urgences.length === 0) {
+            noneMsg.style.display = 'block';
+            return;
+        }
+        noneMsg.style.display = 'none';
+
+        urgences.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${u.id_urgence}</td>
+          <td>${u.patient_nom} ${u.patient_prenom}</td>
+          <td>${new Date(u.date_creation).toLocaleString()}</td>
+          <td>${u.commentaire || ''}</td>
+          <td><button class="btn btn-sm btn-success">Prendre en charge</button></td>
+        `;
+            tr.querySelector('button').onclick = () => assignUrgence(u.id_urgence);
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function loadUrgencesAssignes() {
+        const res = await fetch(`/api/medecin/${medecinId}/urgences`);
+        const urgences = await res.json();
+
+        const tbody = document.querySelector('#urgencesAssignes tbody');
+        tbody.innerHTML = '';
+        const noneMsg = document.getElementById('aucuneUrgenceA');
+
+        if (urgences.length === 0) {
+            noneMsg.style.display = 'block';
+            return;
+        }
+        noneMsg.style.display = 'none';
+
+        urgences.forEach(u => {
+            const statusClass = u.statut === 'résolue' ? 'resolved' : 'assigned';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${u.id_urgence}</td>
+          <td>${u.patient_nom} ${u.patient_prenom}</td>
+          <td>${new Date(u.date_creation).toLocaleString()}</td>
+          <td class="${statusClass}">${u.statut}</td>
+          <td>${u.commentaire || ''}</td>
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function assignUrgence(urgenceId) {
+        const res = await fetch(`/api/urgence/${urgenceId}/assign`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({medecin_id: medecinId})
+        });
+        const result = await res.json();
+        if (res.ok) {
+            alert('Urgence assignée avec succès');
+            loadUrgencesNonAssignes();
+            loadUrgencesAssignes();
+        } else {
+            alert('Erreur: ' + (result.message || 'Erreur serveur'));
+        }
+    }
+
+    window.onload = () => {
+        loadMedecinInfo();
+        loadUrgencesNonAssignes();
+        loadUrgencesAssignes();
+    };
+</script>
+</body>
+</html>
