@@ -1,108 +1,124 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gestion Urgences - Patients</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail Authentification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 500px;
+            margin-top: 50px;
+        }
+        .role-switch button {
+            margin-right: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-    <h1>Liste des Patients</h1>
-    <ul id="patientsList" class="list-group mb-4"></ul>
+<div class="container">
+    <h2 class="text-center">Connexion au Portail</h2>
+    <div class="role-switch text-center mb-3">
+        <button class="btn btn-outline-primary" onclick="switchRole('medecin')">Médecin</button>
+        <button class="btn btn-outline-success" onclick="switchRole('patient')">Patient</button>
+    </div>
+    <div id="authForm">
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Mot de passe</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <input type="hidden" id="role" value="patient">
+            <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+        </form>
+        <hr>
+        <p class="text-center">Pas de compte ? <a href="#" onclick="showRegister()">Créer un compte</a></p>
+    </div>
 
-    <h2>Ajouter un Patient</h2>
-    <form id="patientForm">
-        <div class="mb-3">
-            <label for="nom" class="form-label">Nom</label>
-            <input type="text" class="form-control" id="nom" required />
-        </div>
-        <div class="mb-3">
-            <label for="prenom" class="form-label">Prénom</label>
-            <input type="text" class="form-control" id="prenom" required />
-        </div>
-        <div class="mb-3">
-            <label for="date_naissance" class="form-label">Date de naissance</label>
-            <input type="date" class="form-control" id="date_naissance" required />
-        </div>
-        <div class="mb-3">
-            <label for="sexe" class="form-label">Sexe</label>
-            <select class="form-select" id="sexe" required>
-                <option value="">Choisir...</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-                <option value="Autre">Autre</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="mode_arrivee" class="form-label">Mode d’arrivée</label>
-            <select class="form-select" id="mode_arrivee" required>
-                <option value="">Choisir...</option>
-                <option value="seul">Seul</option>
-                <option value="ambulance">Ambulance</option>
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Ajouter</button>
-    </form>
-
-    <div id="message" class="mt-3"></div>
+    <div id="registerForm" class="hidden">
+        <form id="register">
+            <div class="mb-3">
+                <label for="regEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="regEmail" required>
+            </div>
+            <div class="mb-3">
+                <label for="regPassword" class="form-label">Mot de passe</label>
+                <input type="password" class="form-control" id="regPassword" required>
+            </div>
+            <input type="hidden" id="regRole" value="patient">
+            <button type="submit" class="btn btn-success w-100">Créer un compte</button>
+        </form>
+        <hr>
+        <p class="text-center">Déjà inscrit ? <a href="#" onclick="showLogin()">Se connecter</a></p>
+    </div>
 </div>
 
 <script>
-    const apiUrl = 'http://localhost:5000/patients';
-
-    // Affiche la liste des patients
-    function fetchPatients() {
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                const list = document.getElementById('patientsList');
-                list.innerHTML = '';
-                data.forEach(patient => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item';
-                    li.textContent = `${patient.nom} ${patient.prenom} - Né(e) le ${patient.date_naissance} - Sexe : ${patient.sexe} - Arrivé(e) : ${patient.mode_arrivee}`;
-                    list.appendChild(li);
-                });
-            });
+    function switchRole(role) {
+        document.getElementById('role').value = role;
+        document.getElementById('regRole').value = role;
     }
 
-    // Envoi du formulaire pour ajouter un patient
-    document.getElementById('patientForm').addEventListener('submit', function(e) {
+    function showRegister() {
+        document.getElementById('authForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    }
+
+    function showLogin() {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('authForm').classList.remove('hidden');
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
 
-        const patientData = {
-            nom: document.getElementById('nom').value,
-            prenom: document.getElementById('prenom').value,
-            date_naissance: document.getElementById('date_naissance').value,
-            sexe: document.getElementById('sexe').value,
-            mode_arrivee: document.getElementById('mode_arrivee').value,
-        };
+        // Simulation de connexion réussie
+        // En pratique, vous devriez vérifier ces informations avec votre backend
+        const loginSuccess = true; // Remplacez par la vérification réelle
 
-        fetch(apiUrl, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(patientData)
-        })
-            .then(response => {
-                if (response.ok) {
-                    document.getElementById('message').innerHTML = '<div class="alert alert-success">Patient ajouté avec succès !</div>';
-                    this.reset();
-                    fetchPatients();
-                } else {
-                    response.json().then(data => {
-                        document.getElementById('message').innerHTML = `<div class="alert alert-danger">Erreur: ${data.error}</div>`;
-                    });
-                }
-            })
-            .catch(() => {
-                document.getElementById('message').innerHTML = '<div class="alert alert-danger">Erreur réseau</div>';
-            });
+        if (loginSuccess) {
+            if (role === 'patient') {
+                window.location.href = 'dashbords_patients.html';
+            } else if (role === 'medecin') {
+                window.location.href = 'dashbords_médecins.html';
+            }
+        } else {
+            alert('Email ou mot de passe incorrect');
+        }
     });
 
-    // Charger la liste au chargement de la page
-    window.onload = fetchPatients;
-</script>
+    document.getElementById('register').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const role = document.getElementById('regRole').value;
 
+        // Simulation d'inscription réussie
+        const registerSuccess = true; // Remplacez par la vérification réelle
+
+        if (registerSuccess) {
+            if (role === 'patient') {
+                window.location.href = 'dashbords_patients.html';
+            } else if (role === 'medecin') {
+                window.location.href = 'dashbords_médecins.html';
+            }
+        } else {
+            alert("Erreur lors de l'inscription");
+        }
+    });
+</script>
 </body>
 </html>
