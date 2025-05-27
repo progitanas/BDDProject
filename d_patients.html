@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Patient</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body { background-color: #f4f7fa; }
+    .urgent { color: red; font-weight: bold; }
+    .resolved { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+  <h2>Bienvenue, <span id="patientName">Patient</span></h2>
+  <hr />
+
+  <section>
+    <h4>Informations personnelles</h4>
+    <ul>
+      <li>Email : <span id="patientEmail"></span></li>
+      <li>Fiche médicale : <span id="ficheMedicale"></span></li>
+    </ul>
+  </section>
+
+  <section class="mt-4">
+    <h4>Vos urgences</h4>
+    <table class="table table-striped" id="urgencesTable">
+      <thead>
+      <tr>
+        <th>ID Urgence</th>
+        <th>Date</th>
+        <th>Statut</th>
+        <th>Commentaires</th>
+      </tr>
+      </thead>
+      <tbody>
+      <!-- urgences listées ici -->
+      </tbody>
+    </table>
+    <p id="noUrgencesMsg">Vous n'avez pas d'urgences déclarées.</p>
+  </section>
+
+  <section class="mt-4">
+    <h4>Déclarer une nouvelle urgence</h4>
+    <form id="urgenceForm">
+      <div class="mb-3">
+        <label for="urgenceCommentaire" class="form-label">Commentaire</label>
+        <textarea id="urgenceCommentaire" class="form-control" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-danger">Déclarer l'urgence</button>
+    </form>
+    <div id="formMessage" class="mt-2"></div>
+  </section>
+</div>
+
+<script>
+  const patientId = 1; // à remplacer par session utilisateur réelle
+
+  async function loadPatientInfo() {
+    // Exemple d'appel API pour récupérer infos patient
+    const res = await fetch(`/api/patient/${patientId}`);
+    if (!res.ok) {
+      alert('Erreur chargement infos patient');
+      return;
+    }
+    const data = await res.json();
+    document.getElementById('patientName').textContent = data.nom + ' ' + data.prenom;
+    document.getElementById('patientEmail').textContent = data.email;
+    document.getElementById('ficheMedicale').textContent = data.fiche_medicale || 'Aucune fiche';
+  }
+
+  async function loadUrgences() {
+    const res = await fetch(`/api/patient/${patientId}/urgences`);
+    const urgences = await res.json();
+    const tbody = document.querySelector('#urgencesTable tbody');
+    const noMsg = document.getElementById('noUrgencesMsg');
+
+    tbody.innerHTML = '';
+    if (urgences.length === 0) {
+      noMsg.style.display = 'block';
+      return;
+    }
+    noMsg.style.display = 'none';
+
+    urgences.forEach(u => {
+      const tr = document.createElement('tr');
+
+      const statusClass = u.statut === 'résolue' ? 'resolved' : (u.statut === 'urgente' ? 'urgent' : '');
+      tr.innerHTML = `
+          <td>${u.id_urgence}</td>
+          <td>${new Date(u.date_creation).toLocaleString()}</td>
+          <td class="${statusClass}">${u.statut}</td>
+          <td>${u.commentaire || ''}</td>
+        `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('urgenceForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const commentaire = document.getElementById('urgenceCommentaire').value.trim();
+    if (!commentaire) return;
+
+    const res = await fetch(`/api/patient/${patientId}/urgence`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({commentaire})
+    });
+    const result = await res.json();
+    const msgDiv = document.getElementById('formMessage');
+    if (res.ok) {
+      msgDiv.textContent = 'Urgence déclarée avec succès';
+      msgDiv.style.color = 'green';
+      document.getElementById('urgenceCommentaire').value = '';
+      loadUrgences();
+    } else {
+      msgDiv.textContent = 'Erreur : ' + (result.message || 'Erreur serveur');
+      msgDiv.style.color = 'red';
+    }
+  });
+
+  window.onload = () => {
+    loadPatientInfo();
+    loadUrgences();
+  };
+</script>
+</body>
+</html>
